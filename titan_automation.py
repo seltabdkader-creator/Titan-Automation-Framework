@@ -1,6 +1,6 @@
 import asyncio
 from playwright.async_api import async_playwright
-from playwright_stealth import stealth_async
+from playwright_stealth import Stealth
 import random
 
 class TitanAutomation:
@@ -11,13 +11,22 @@ class TitanAutomation:
 
     async def launch_browser(self, headless=True):
         print("🚀 تشغيل المتصفح...")
-        self.browser = await async_playwright().chromium.launch(headless=headless)
+        pw = await async_playwright().start()
+        self.browser = await pw.chromium.launch(headless=headless)
+        
+        # إعداد وضع التخفي
+        stealth = Stealth()
+        
         self.context = await self.browser.new_context(
             viewport={'width': 1920, 'height': 1080},
             user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         )
+        
         self.page = await self.context.new_page()
-        await stealth_async(self.page)
+        
+        # تطبيق التخفي على الصفحة
+        await stealth.apply_stealth_async(self.page)
+        
         print("✅ تم تشغيل المتصفح بنجاح مع وضع التخفي.")
 
     async def navigate(self, url):
@@ -34,6 +43,8 @@ class TitanAutomation:
             await self.page.evaluate(f"window.scrollBy(0, {scroll_amount})")
             current_scroll += scroll_amount
             await asyncio.sleep(random.uniform(0.5, 1.5))
+            # تحديث ارتفاع الصفحة في حال كان هناك تحميل ديناميكي
+            scroll_height = await self.page.evaluate("document.body.scrollHeight")
         print("✅ انتهى التمرير.")
 
     async def take_screenshot(self, path="screenshot.png"):
